@@ -72,6 +72,7 @@ POST /search/
 ```
 
 ## 使用示例
+建议使用 Apifox 或者 Postman 进行测试
 
 ### cURL请求
 ```bash
