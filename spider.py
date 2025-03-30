@@ -46,7 +46,7 @@ class XianyuProduct(Model):
     class Meta:
         table = "xianyu_products"
 
-# 配置数据库（请根据实际情况替换为您的MySQL信息）
+# 配置数据库
 DATABASE_URL = os.environ.get("DATABASE_URL")
 DATABASE_CONFIG = {
     "connections": {
