@@ -3,12 +3,12 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.68.0-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://www.python.org/)
 
-基于FastAPI构建的闲鱼商品搜索接口，支持异步并发请求和自动化数据去重存储。
+基于 FastAPI 构建的闲鱼商品搜索接口，支持异步并发请求和自动化数据去重存储。
 
 ## 功能特性
 
 - 🔍 关键词商品搜索（支持分页）
-- ⚡ 异步高性能爬取（Playwright无头浏览器）
+- ⚡ 异步高性能爬取（Playwright 无头浏览器）
 - 🛡️ 智能数据去重（基于链接特征哈希值）
 - 💾 数据持久化存储（关系数据库）
 - 📊 返回新增记录统计信息
@@ -43,7 +43,7 @@ DATABASE_URL=mysql://user:password@localhost/xianyu
 python spider.py
 ```
 
-## API文档
+## API 文档
 
 访问 `http://localhost:8000/docs` 查看交互式文档
 
@@ -74,14 +74,14 @@ POST /search/
 ## 使用示例
 建议使用 Apifox 或者 Postman 进行测试
 
-### cURL请求
+### cURL 请求
 ```bash
 curl -X POST "http://localhost:8000/search/" \
 -H "Content-Type: application/json" \
 -d '{"keyword": "笔记本电脑", "max_pages": 2}'
 ```
 
-### Python客户端
+### Python 客户端
 ```python
 import requests
 
@@ -95,14 +95,14 @@ print(response.json())
 ## 注意事项
 
 1. **法律合规**  
-使用前请确保遵守《网络安全法》和闲鱼平台Robots协议，本代码仅用于学习研究
+使用前请确保遵守《网络安全法》和闲鱼平台 Robots 协议，本代码仅用于学习研究
 
 2. **反爬机制**  
-建议配置代理IP池和随机请求间隔，默认配置可能触发反爬限制
+建议配置代理 IP 池和随机请求间隔，默认配置可能触发反爬限制
 
 3. **性能调优**  
 - 调整数据库连接池配置（`pool_recycle`等参数）
-- 建议生产环境部署时增加Redis缓存层
+- 建议生产环境部署时增加 Redis 缓存层
 
 ## 版权声明
 
