@@ -33,7 +33,7 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-2. 创建 `.env` 文件
+2. 创建 `.env` 文件（请修改为自己的信息）
 ```env
 DATABASE_URL=mysql://user:password@localhost/xianyu
 ```
