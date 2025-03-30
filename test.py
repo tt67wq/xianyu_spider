@@ -4,23 +4,26 @@ from datetime import datetime
 import os
 
 def safe_get(data, *keys, default="暂无"):
-    """安全获取嵌套字典值"""
     for key in keys:
         try:
             data = data[key]
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, IndexError):
             return default
     return data
 
 def save_to_excel(data_list, filename="商品数据.xlsx"):
-    """保存数据到Excel文件"""
-    df = pd.DataFrame(data_list)
+    if not data_list:
+        print("没有需要保存的数据")
+        return
+
+    # 创建DataFrame并去重
+    df = pd.DataFrame(data_list).drop_duplicates(subset=["商品链接"], keep="first")
     
     # 设置输出路径（桌面）
     desktop = os.path.join(os.path.expanduser("~"), "Desktop")
     filepath = os.path.join(desktop, filename)
     
-    # 使用xlsxwriter引擎美化格式
+    # 使用xlsxwriter引擎
     writer = pd.ExcelWriter(filepath, engine='xlsxwriter')
     df.to_excel(writer, index=False, sheet_name='商品列表')
     
@@ -28,7 +31,7 @@ def save_to_excel(data_list, filename="商品数据.xlsx"):
     workbook = writer.book
     worksheet = writer.sheets['商品列表']
     
-    # 设置格式
+    # 设置标题格式
     header_format = workbook.add_format({
         'bold': True,
         'text_wrap': True,
@@ -41,11 +44,12 @@ def save_to_excel(data_list, filename="商品数据.xlsx"):
     # 设置列宽（字符单位）
     col_widths = {
         '商品标题': 50,
-        '当前售价': 12,
-        '发货地区': 12,
+        '当前售价': 15,
+        '发货地区': 15,
         '卖家昵称': 20,
         '商品链接': 60,
-        '发布时间': 18
+        '商品图片链接': 60,  # 新增列宽设置
+        '发布时间': 20
     }
     
     # 应用格式
@@ -57,83 +61,162 @@ def save_to_excel(data_list, filename="商品数据.xlsx"):
         worksheet.write(0, col_num, value, header_format)
     
     writer.close()
-    print(f"\n数据已保存到：{filepath}")
+    print(f"数据已保存到：{filepath}")
 
-def on_response(response):
-    data_list = []  # 用于收集所有商品数据
+def scrape_xianyu(keyword, max_pages=1):
+    data_list = []  # 统一存储所有数据
     
-    if "https://h5api.m.goofish.com/h5/mtop.taobao.idlemtopsearch.pc.search/1.0/" in response.url:
-        try:
-            result_json = response.json()
-            items = result_json.get("data", {}).get("resultList", [])
-            
-            for item in items:
-                main_data = safe_get(item, "data", "item", "main", "exContent", default={})
-                click_params = safe_get(item, "data", "item", "main", "clickParam", "args", default={})
+    def on_response(response):
+        if "h5api.m.goofish.com/h5/mtop.taobao.idlemtopsearch.pc.search" in response.url:
+            try:
+                result_json = response.json()
+                items = result_json.get("data", {}).get("resultList", [])
                 
-                # 商品基础信息
-                title = safe_get(main_data, "title", default="未知标题")
-                
-                # 价格处理
-                price_parts = safe_get(main_data, "price", default=[])
-                price = "".join([p.get("text", "") for p in price_parts if isinstance(p, dict)])
-                
-                # 地区信息
-                area = safe_get(main_data, "area", default="地区未知")
-                
-                # 卖家信息
-                seller = safe_get(main_data, "userNickName", default="匿名卖家")
-                
-                # 商品链接
-                raw_link = safe_get(item, "data", "item", "main", "targetUrl", default="")
-                clean_link = raw_link.split("?")[0] if raw_link else ""
-                
-                # 发布时间（时间戳转换）
-                publish_time = safe_get(click_params, "publishTime", default="")
-                if publish_time.isdigit():
-                    dt = datetime.fromtimestamp(int(publish_time)/1000)
-                    publish_date = dt.strftime("%Y-%m-%d %H:%M")
-                else:
+                for item in items:
+                    main_data = safe_get(item, "data", "item", "main", "exContent", default={})
+                    click_params = safe_get(item, "data", "item", "main", "clickParam", "args", default={})
+                    
+                    # 解析商品信息
+                    title = safe_get(main_data, "title", default="未知标题")
+                    
+                    # 价格处理
+                    price_parts = safe_get(main_data, "price", default=[])
+                    if isinstance(price_parts, list):
+                        price = "".join([str(p.get("text", "")) for p in price_parts if isinstance(p, dict)])
+                    else:
+                        price = "价格异常"
+
+                    if "当前价" in price:
+                        price = price.replace("当前价", "")
+                    
+                    if "万" in price:
+                        price = "¥" + str(int(float(price.replace("¥", "").replace("万", "")) * 10000))
+
+                    # 其他信息
+                    area = safe_get(main_data, "area", default="地区未知")
+                    seller = safe_get(main_data, "userNickName", default="匿名卖家")
+                    
+                    # 链接处理
+                    raw_link = safe_get(item, "data", "item", "main", "targetUrl", default="")
+                    clean_link = raw_link.replace("fleamarket://", "https://www.goofish.com/")
+                    
+                    # 新增图片链接获取
+                    image_url = safe_get(main_data, "picUrl", default="")
+                    if image_url and not image_url.startswith("http"):
+                        image_url = f"https:{image_url}"
+                    
+                    # 时间转换
+                    publish_time = safe_get(click_params, "publishTime", default="")
                     publish_date = "未知时间"
-                
-                # 收集数据
-                data_list.append({
-                    "商品标题": title,
-                    "当前售价": price if price != "" else "价格未知",
-                    "发货地区": area,
-                    "卖家昵称": seller,
-                    "商品链接": clean_link,
-                    "发布时间": publish_date
-                })
-            
-            # 每次响应都保存最新数据（可选实时保存）
-            if data_list:
-                save_to_excel(data_list, filename=f"闲鱼商品_{datetime.now().strftime('%Y%m%d%H%M')}.xlsx")
-                
-        except Exception as e:
-            print(f"处理数据时发生错误: {str(e)}")
+                    if publish_time.isdigit():
+                        try:
+                            dt = datetime.fromtimestamp(int(publish_time)/1000)
+                            publish_date = dt.strftime("%Y-%m-%d %H:%M")
+                        except:
+                            pass
+                    
+                    data_list.append({
+                        "商品标题": title,
+                        "当前售价": price,
+                        "发货地区": area,
+                        "卖家昵称": seller,
+                        "商品链接": clean_link,
+                        "商品图片链接": image_url,  # 新增图片链接字段
+                        "发布时间": publish_date
+                    })
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)
-    page = browser.new_page()
-    
-    try:
-        # 访问页面
-        page.goto("https://www.goofish.com", wait_until="networkidle")
+            except Exception as e:
+                print(f"数据处理异常: {str(e)}")
+
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        page = browser.new_page()
         
-        # 输入搜索词
-        page.fill('input[class="search-input--WY2l9QD3"]', "iphone13mini")
-        # 注册响应事件
-        page.on("response", on_response)
-        # 点击搜索按钮
-        page.click('button[type="submit"]')
-        page.wait_for_timeout(3000)
-        
-    except Exception as e:
-        # 错误处理
-        print(f"发生错误: {str(e)}")
-        page.screenshot(path='error_screenshot.png')
-        print("已保存错误截图：error_screenshot.png")
-        
-    finally:
-        browser.close()
+        try:
+            # 访问闲鱼首页
+            page.goto("https://www.goofish.com")
+            # page.wait_for_timeout(1000)
+            # page.wait_for_selector('input[class*="search-input"]', timeout=10000)
+
+            # 如果页面有包含closeIconBg的元素，说明有弹窗广告，点击关闭
+            try:
+                page.click("[class*='closeIconBg']", timeout=1000)
+            except:
+                pass
+
+            # 执行搜索
+            print("正在搜索商品，请稍等...")
+            page.fill('input[class*="search-input"]', keyword)
+            page.click('button[type="submit"]')
+
+            # 设置最新排序
+            page.click('text=新发布')
+            page.click('text=最新')
+
+            # 注册响应监听
+            page.on("response", on_response)
+
+            # 分页爬取
+            current_page = 1
+            while current_page <= max_pages:
+                print(f"正在处理第 {current_page}/{max_pages} 页...")
+                
+                try:
+                    page.wait_for_selector("[class*='search-pagination-container']", timeout=1000)
+                except:
+                    print("未找到分页器，可能只有单页结果")
+                    break
+
+                try:
+                 # 查找下一页按钮，div class属性字段中包括search-pagination-arrow-right
+                    next_btn = page.query_selector("[class*='search-pagination-arrow-right']")
+                
+                # 如果没有找到下一页按钮，或者下一页按钮的cursor为not-allowed，则终止爬取
+                    if (next_btn is None) or ("disabled" in next_btn.get_attribute("class")):
+                        print(f"无法找到第 {current_page + 1} 页，终止爬取")
+                        break
+
+                    page.click("[class*='search-pagination-arrow-right']", timeout=1000)
+
+                    
+
+                except:
+                    print(f"无法找到第 {current_page + 1} 页，终止爬取")
+                    current_page += 1
+                    break
+
+                current_page += 1
+                
+                # 等待新页面加载
+                # page.wait_for_timeout(1000)
+                
+                
+            # 最终保存数据
+            if data_list:
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                # 去除keyword中的特殊字符
+                keyword = ''.join(e for e in keyword if e.isalnum())
+                filename = f"闲鱼爬取结果_{keyword}_共{current_page - 1}页_{timestamp}.xlsx"
+                save_to_excel(data_list, filename)
+            else:
+                print("没有采集到任何商品数据")
+
+        except Exception as e:
+            print(f"爬取中断: {str(e)}")
+            # 异常时保存已有数据
+            if data_list:
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                save_to_excel(data_list, f"闲鱼_异常中断_{timestamp}.xlsx")
+            page.screenshot(path='xianyu_error.png')
+            print("错误截图已保存至目录")
+
+        finally:
+            browser.close()
+
+if __name__ == "__main__":
+    keyword = input("请输入要搜索的商品关键词：").strip()
+    pages = int(input("请输入要爬取的最大页数：").strip() or 1)
+    print(f"开始爬取 {keyword} 的前 {pages} 页数据...")
+    scrape_xianyu(keyword, max_pages=pages)
+    print("爬取任务结束")
