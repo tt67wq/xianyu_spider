@@ -10,9 +10,8 @@
 - 🔍 关键词商品搜索（支持分页）
 - ⚡ 异步高性能爬取（Playwright无头浏览器）
 - 🛡️ 智能数据去重（基于链接特征哈希值）
-- 💾 数据持久化存储（MySQL数据库）
+- 💾 数据持久化存储（关系数据库）
 - 📊 返回新增记录统计信息
-- 📦 开箱即用的Docker部署支持
 
 ## 技术栈
 
@@ -21,9 +20,8 @@
 | FastAPI        | RESTful API框架          |
 | Playwright     | 浏览器自动化爬取         |
 | Tortoise ORM   | 异步数据库ORM            |
-| MySQL          | 数据持久化存储           |
+| SQL            | 数据持久化存储           |
 | Uvicorn        | ASGI服务器               |
-| Docker         | 容器化部署               |
 
 ## 快速开始
 
@@ -42,7 +40,7 @@ DATABASE_URL=mysql://user:password@localhost/xianyu
 
 ### 启动服务
 ```bash
-uvicorn main:app --reload --port 8000
+python spider.py
 ```
 
 ## API文档
