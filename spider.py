@@ -21,10 +21,10 @@ def get_link_unique_key(link: str) -> str:
     截取链接中前1个"&"之前的内容作为唯一标识依据。
     如果链接中的"&"少于1个，则返回整个链接。
     """
-    # 尝试拆分链接，最多拆分5次
+    # 尝试拆分链接，最多拆分1次
     parts = link.split('&', 1)
     if len(parts) >= 2:
-        # 拼接前5部分，保留"&"连接符
+        # 拼接前1部分，保留"&"连接符
         return '&'.join(parts[:1])
     else:
         return link
