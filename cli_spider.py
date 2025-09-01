@@ -26,6 +26,7 @@ from cli_config import (
 )
 from database import close_database, get_database_info, init_database
 from models import XianyuProduct
+from utils.price_parser import parse_price_to_cents
 
 # 获取配置实例
 config = get_config()
@@ -81,6 +82,7 @@ async def save_to_db(
                 defaults={
                     "title": item["商品标题"],
                     "price": item["当前售价"],
+                    "price_cents": item.get("价格分", -1),
                     "area": item["发货地区"],
                     "seller": item["卖家昵称"],
                     "link": link,
@@ -182,6 +184,9 @@ async def scrape_xianyu(
                             if "万" in price:
                                 price = f"¥{float(price.replace('¥', '').replace('万', '')) * 10000:.0f}"
 
+                        # 解析价格为整数(分)
+                        price_cents = parse_price_to_cents(price)
+
                         # 其他字段解析
                         area = await safe_get(
                             main_data, "area", default="地区未知"
@@ -205,6 +210,7 @@ async def scrape_xianyu(
                             {
                                 "商品标题": title,
                                 "当前售价": price,
+                                "价格分": price_cents,
                                 "发货地区": area,
                                 "卖家昵称": seller,
                                 "商品链接": raw_link.replace(

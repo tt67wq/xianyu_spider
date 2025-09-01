@@ -7,6 +7,9 @@ class XianyuProduct(Model):
     id = fields.IntField(pk=True)
     title = fields.TextField(description="商品标题")
     price = fields.CharField(max_length=50, description="当前售价")
+    price_cents = fields.IntField(
+        default=-1, description="当前售价(分)，-1表示异常价格"
+    )
     area = fields.CharField(max_length=100, description="发货地区")
     seller = fields.CharField(max_length=100, description="卖家昵称")
     # 存储完整链接，不设置唯一性约束
@@ -28,3 +31,22 @@ class XianyuProduct(Model):
 
     def __repr__(self):
         return f"XianyuProduct(id={self.id}, title='{self.title[:20]}...', price='{self.price}')"
+
+    @property
+    def price_yuan(self) -> float:
+        """返回元为单位的价格"""
+        return self.price_cents / 100 if self.price_cents > 0 else 0.0
+
+    def format_price(self) -> str:
+        """格式化价格显示"""
+        # 检查新格式的价格
+        if hasattr(self, "price_cents") and self.price_cents >= 0:
+            if self.price_cents >= 1000000:  # 1万元及以上
+                return f"¥{self.price_cents / 1000000:.1f}万"
+            else:
+                return f"¥{round(self.price_cents / 100)}"
+
+        # 回退到原始字符串价格
+        return (
+            self.price if self.price and str(self.price).strip() else "价格异常"
+        )
