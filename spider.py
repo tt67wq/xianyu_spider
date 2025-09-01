@@ -7,8 +7,10 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from playwright.async_api import async_playwright
-from tortoise import Model, fields
 from tortoise.contrib.fastapi import register_tortoise
+
+from database import db_manager
+from models import XianyuProduct
 
 load_dotenv()
 
@@ -54,44 +56,10 @@ def get_link_unique_key(link: str) -> str:
         return link
 
 
-# 定义数据库模型，增加 link_hash 字段用于唯一性判断
-class XianyuProduct(Model):
-    id = fields.IntField(pk=True)
-    title = fields.TextField(description="商品标题")
-    price = fields.CharField(max_length=50, description="当前售价")
-    area = fields.CharField(max_length=100, description="发货地区")
-    seller = fields.CharField(max_length=100, description="卖家昵称")
-    # 存储完整链接，不设置唯一性约束
-    link = fields.TextField(description="商品链接", column_type="MEDIUMTEXT")
-    # 使用 link_hash 字段保存截取后的链接 MD5 值，并设置唯一约束
-    link_hash = fields.CharField(
-        max_length=32, unique=True, description="商品链接哈希"
-    )
-    image_url = fields.TextField(
-        description="商品图片链接", column_type="MEDIUMTEXT"
-    )
-    publish_time = fields.DatetimeField(null=True, description="发布时间")
-
-    class Meta:  # type: ignore
-        table = "xianyu_products"
-
-
-# 配置数据库
-DATABASE_CONFIG = {
-    "connections": {
-        "default": f"sqlite://{os.path.join(PROJECT_ROOT, DATABASE_PATH)}"
-    },
-    "apps": {
-        "models": {
-            "models": ["__main__"],
-            "default_connection": "default",
-        }
-    },
-}
-
+# 为FastAPI保持兼容性的数据库配置
 register_tortoise(
     app,
-    config=DATABASE_CONFIG,
+    config=db_manager.config,
     generate_schemas=True,  # 自动创建表结构
     add_exception_handlers=True,
 )
