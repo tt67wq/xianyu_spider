@@ -20,7 +20,8 @@
 | FastAPI        | RESTful API框架          |
 | Playwright     | 浏览器自动化爬取         |
 | Tortoise ORM   | 异步数据库ORM            |
-| SQL            | 数据持久化存储           |
+| SQLite         | 轻量级数据库存储         |
+| aiosqlite      | 异步SQLite驱动           |
 | Uvicorn        | ASGI服务器               |
 
 ## 快速开始
@@ -33,15 +34,39 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-2. 创建 `.env` 文件（请修改为自己的信息）
-```env
-DATABASE_URL=mysql://user:password@localhost/xianyu
+2. 环境变量配置
+复制 `.env.example` 为 `.env` 并根据需要修改配置：
+```bash
+cp .env.example .env
 ```
+
+主要环境变量说明：
+```env
+# 数据库配置
+DATABASE_PATH=data/xianyu_spider.db
+
+# 服务器配置
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8000
+
+# 爬虫配置
+REQUEST_DELAY=1
+BROWSER_HEADLESS=true
+DEBUG=false
+```
+
+**SQLite数据库优势**：
+- ✅ 无需额外安装数据库服务
+- ✅ 零配置，开箱即用
+- ✅ 文件存储，易于备份和迁移
+- ✅ 适合单机部署和小团队开发
 
 ### 启动服务
 ```bash
 python spider.py
 ```
+
+数据库文件将自动创建在 `data/xianyu_spider.db`，首次运行会自动生成表结构。
 
 ## API 文档
 
@@ -92,6 +117,29 @@ response = requests.post(
 print(response.json())
 ```
 
+## 数据库管理
+
+### SQLite特性
+- **文件位置**: `data/xianyu_spider.db`
+- **自动创建**: 首次运行自动生成
+- **备份方式**: 直接复制db文件即可
+- **查看数据**: 可使用SQLite Browser等工具
+
+### 数据清理
+```bash
+# 删除数据库重新开始
+rm data/xianyu_spider.db
+```
+
+### 性能监控
+```bash
+# 检查数据库大小
+ls -lh data/xianyu_spider.db
+
+# 统计记录数量
+sqlite3 data/xianyu_spider.db "SELECT COUNT(*) FROM xianyu_products;"
+```
+
 ## 注意事项
 
 1. **法律合规**  
@@ -101,8 +149,14 @@ print(response.json())
 建议配置代理 IP 池和随机请求间隔，默认配置可能触发反爬限制
 
 3. **性能调优**  
-- 调整数据库连接池配置（`pool_recycle`等参数）
-- 建议生产环境部署时增加 Redis 缓存层
+- SQLite单进程写入，适合中小规模数据
+- 大量并发写入建议考虑PostgreSQL或MySQL
+- 定期清理历史数据避免文件过大
+
+4. **数据安全**  
+- 定期备份 `data` 目录
+- `.env` 文件已加入 `.gitignore`，避免提交敏感配置
+- 生产环境建议设置文件权限限制
 
 ## 版权声明
 

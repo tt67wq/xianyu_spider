@@ -1,2 +1,41 @@
 xianyu_error.png
 .env
+
+# SQLite数据库文件
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+data/
+
+# IDE配置文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# 日志文件
+*.log
+log/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+/.claude/
+
+/.venv/
