@@ -93,6 +93,19 @@ ollama serve
 uv sync
 ```
 
+### 数据库配置
+```bash
+# 创建.env文件配置数据库路径（可选）
+echo "DATABASE_PATH=data/xianyu_spider.db" > .env
+
+# 支持的配置选项：
+DATABASE_PATH=data/xianyu_spider.db          # 相对路径（默认）
+DATABASE_PATH=/absolute/path/to/database.db  # 绝对路径
+DATABASE_PATH=custom/location/data.db        # 自定义相对路径
+
+# 不配置时自动使用默认路径：data/xianyu_spider.db
+```
+
 ### 推荐模型
 ```bash
 # 轻量级（适合低配置）
@@ -138,7 +151,7 @@ from llm_dynamic import DynamicLLMAnalyzer, get_products_by_keyword
 # 初始化分析器
 analyzer = DynamicLLMAnalyzer(model="qwen2.5:7b")
 
-# 获取商品数据
+# 获取商品数据（自动使用配置的数据库路径）
 products = await get_products_by_keyword("iPhone", limit=10)
 
 # 执行动态分析
@@ -148,6 +161,18 @@ result = await analyzer.analyze_with_prompt(
 )
 
 print(result)
+```
+
+### 数据库配置接口
+```python
+from llm_dynamic.database import get_database_url
+
+# 查看当前数据库配置
+db_url = get_database_url()
+print(f"当前数据库: {db_url}")
+
+# 数据库路径自动从环境变量DATABASE_PATH读取
+# 支持相对路径和绝对路径，自动创建目录结构
 ```
 
 ### 模型切换
@@ -164,6 +189,9 @@ print(models)
 ```bash
 # 设置默认模型
 export LLM_MODEL=qwen2.5:7b
+
+# 设置数据库路径
+export DATABASE_PATH=data/my_custom.db
 
 # 使用环境变量
 python llm_cli.py "分析商品"
@@ -197,12 +225,15 @@ python llm_cli.py "分析商品"
 - 控制商品数量（--limit参数）
 - 使用具体关键词缩小范围
 - 选择合适的模型大小
+- 配置合适的数据库路径（SSD vs HDD）
 
 ### 常见问题
 1. **Ollama连接失败**: 确保`ollama serve`已启动
 2. **模型未找到**: 使用`ollama pull`安装模型
 3. **分析速度慢**: 减少商品数量或换用小模型
 4. **中文效果差**: 推荐使用qwen2.5系列模型
+5. **数据库路径错误**: 检查.env中DATABASE_PATH配置
+6. **权限不足**: 确保数据库目录有读写权限
 
 ## 🚀 后续规划
 
@@ -219,7 +250,8 @@ python llm_cli.py "分析商品"
 1. 环境是否满足要求（运行`check_llm_env.py`）
 2. Ollama服务是否正常
 3. 模型是否已下载
-4. 数据库文件是否存在
+4. 数据库配置是否正确（运行`test_database_config.py`）
+5. 数据库文件是否存在且有权限访问
 
 ---
 

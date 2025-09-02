@@ -3,11 +3,39 @@
 动态获取商品数据供LLM分析使用
 """
 
+import sys
+from pathlib import Path
 from typing import Dict, List
 
 from tortoise import Tortoise
 
+# 添加项目根目录到路径
+sys.path.append(str(Path(__file__).parent.parent))
+from cli_config import get_database_path
 from models import XianyuProduct
+
+
+def get_database_url() -> str:
+    """
+    获取数据库连接URL，支持环境变量配置
+
+    Returns:
+        SQLite数据库连接字符串
+    """
+    # 使用现有配置管理获取路径
+    db_path = get_database_path()
+
+    # 路径处理和验证
+    path = Path(db_path)
+    if not path.is_absolute():
+        # 相对路径，相对于项目根目录
+        path = Path(__file__).parent.parent / path
+
+    # 确保目录存在
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 返回SQLite连接字符串
+    return f"sqlite://{path.absolute()}"
 
 
 async def get_products_by_keyword(keyword: str, limit: int = 10) -> List[Dict]:
@@ -24,7 +52,7 @@ async def get_products_by_keyword(keyword: str, limit: int = 10) -> List[Dict]:
     try:
         # 初始化数据库连接
         await Tortoise.init(
-            db_url="sqlite://database.sqlite3", modules={"models": ["models"]}
+            db_url=get_database_url(), modules={"models": ["models"]}
         )
 
         # 查询商品数据
@@ -66,7 +94,7 @@ async def get_all_products(limit: int = 20) -> List[Dict]:
     """
     try:
         await Tortoise.init(
-            db_url="sqlite://database.sqlite3", modules={"models": ["models"]}
+            db_url=get_database_url(), modules={"models": ["models"]}
         )
 
         products = (
@@ -109,7 +137,7 @@ async def get_products_by_price_range(
     """
     try:
         await Tortoise.init(
-            db_url="sqlite://database.sqlite3", modules={"models": ["models"]}
+            db_url=get_database_url(), modules={"models": ["models"]}
         )
 
         products = (

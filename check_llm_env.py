@@ -4,7 +4,6 @@ LLM动态分析模块环境检查脚本
 检查Python版本、内存、Ollama安装状态和可用模型
 """
 
-import os
 import subprocess
 import sys
 from typing import List, Tuple
@@ -100,12 +99,26 @@ def get_available_models() -> Tuple[bool, List[str]]:
 
 def check_database_exists() -> Tuple[bool, str]:
     """检查数据库文件是否存在"""
-    db_path = "database.sqlite3"
-    if os.path.exists(db_path):
-        size = os.path.getsize(db_path) / 1024  # KB
-        return True, f"✅ 数据库文件存在: {size:.1f}KB"
-    else:
-        return False, "❌ 数据库文件不存在"
+    try:
+        # 使用配置管理获取数据库路径
+        from cli_config import get_database_path
+
+        db_path = get_database_path()
+
+        # 处理相对路径
+        from pathlib import Path
+
+        path = Path(db_path)
+        if not path.is_absolute():
+            path = Path(__file__).parent / path
+
+        if path.exists():
+            size = path.stat().st_size / 1024  # KB
+            return True, f"✅ 数据库文件存在: {size:.1f}KB ({path})"
+        else:
+            return False, f"❌ 数据库文件不存在: {path}"
+    except Exception as e:
+        return False, f"❌ 数据库检查失败: {str(e)}"
 
 
 def check_dependencies() -> Tuple[bool, str]:
@@ -155,7 +168,11 @@ def print_installation_guide():
     print("\n4. 安装Python依赖:")
     print("   uv sync")
 
-    print("\n5. 测试安装:")
+    print("\n5. 配置数据库:")
+    print("   # 在.env文件中设置DATABASE_PATH（可选）")
+    print("   # 默认使用: data/xianyu_spider.db")
+
+    print("\n6. 测试安装:")
     print("   python llm_cli.py '测试功能'")
 
 
