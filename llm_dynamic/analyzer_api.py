@@ -4,6 +4,7 @@
 """
 
 import asyncio
+import json
 import os
 import sys
 from typing import Dict, List, Optional
@@ -74,8 +75,9 @@ class DynamicLLMAnalyzerAPI:
             str: LLM 分析结果
         """
         try:
+            products_json = json.dumps(products, ensure_ascii=False)
             # 构建完整的分析请求
-            analysis_content = f"""商品数据：{products}
+            analysis_content = f"""商品数据：{products_json}
 
 用户需求：{prompt}
 

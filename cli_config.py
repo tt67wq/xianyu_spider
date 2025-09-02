@@ -82,7 +82,7 @@ class CLIConfig:
                 "timeout": int(os.getenv("LLM_TIMEOUT", "30")),
                 "max_retries": int(os.getenv("LLM_MAX_RETRIES", "3")),
                 "temperature": float(os.getenv("LLM_TEMPERATURE", "0.6")),
-                "max_tokens": int(os.getenv("LLM_MAX_TOKENS", "4000")),
+                "max_tokens": int(os.getenv("LLM_MAX_TOKENS", "131072")),
             },
         }
 

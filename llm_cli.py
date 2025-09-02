@@ -111,11 +111,22 @@ async def main():
             print("❌ 没有找到相关商品数据")
             return
 
+        # 过滤商品信息
+        target_products = [
+            {
+                "title": m["title"],
+                "price": m["price"],
+                "area": m["area"],
+                "publish_time": m["publish_time"].isoformat(),
+            }
+            for m in products
+        ]
+
         print("🤔 LLM分析中...")
         print("-" * 50)
 
         # 执行动态分析
-        result = await analyzer.analyze_with_prompt(products, prompt)
+        result = await analyzer.analyze_with_prompt(target_products, prompt)
 
         print("🎉 分析结果：")
         print(result)
