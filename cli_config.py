@@ -72,6 +72,18 @@ class CLIConfig:
                 "retry_delay": 2,
                 "connection_timeout": 10,
             },
+            # LLM配置
+            "llm": {
+                "api_key": os.getenv("OPENAI_API_KEY"),
+                "base_url": os.getenv(
+                    "OPENAI_BASE_URL", "https://api.openai.com/v1"
+                ),
+                "model": os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+                "timeout": int(os.getenv("LLM_TIMEOUT", "30")),
+                "max_retries": int(os.getenv("LLM_MAX_RETRIES", "3")),
+                "temperature": float(os.getenv("LLM_TEMPERATURE", "0.6")),
+                "max_tokens": int(os.getenv("LLM_MAX_TOKENS", "4000")),
+            },
         }
 
     def _validate_config(self):
@@ -95,6 +107,20 @@ class CLIConfig:
         network_config = self.config["network"]
         if network_config["retry_attempts"] < 0:
             errors.append("重试次数不能为负数")
+
+        # 验证LLM配置
+        llm_config = self.config["llm"]
+        if llm_config["timeout"] < 1:
+            errors.append("LLM超时时间必须大于0")
+
+        if llm_config["max_retries"] < 0:
+            errors.append("LLM重试次数不能为负数")
+
+        if llm_config["temperature"] < 0 or llm_config["temperature"] > 2:
+            errors.append("LLM温度值必须在0-2之间")
+
+        if llm_config["max_tokens"] < 1:
+            errors.append("LLM最大token数必须大于0")
 
         if errors:
             print("❌ 配置验证失败:")
@@ -147,9 +173,28 @@ class CLIConfig:
         """获取网络配置"""
         return self.config["network"]
 
+    def get_llm_config(self) -> Dict[str, Any]:
+        """获取LLM配置"""
+        return self.config["llm"]
+
     def is_debug_enabled(self) -> bool:
         """检查是否启用调试模式"""
         return self.config["debug"]["enabled"]
+
+    def is_llm_configured(self) -> bool:
+        """检查LLM是否已配置"""
+        llm_config = self.get_llm_config()
+        return (
+            llm_config["api_key"] is not None
+            and llm_config["api_key"].strip() != ""
+        )
+
+    def validate_llm_model(self, model_name: str) -> str:
+        """验证LLM模型名称"""
+        if not model_name or not model_name.strip():
+            raise ValueError("模型名称不能为空")
+
+        return model_name.strip()
 
     def validate_pages(self, pages: int) -> int:
         """验证页数参数"""
@@ -202,6 +247,13 @@ class CLIConfig:
         print(f"   默认页数: {self.get('spider.max_pages_default')}")
         print(f"   调试模式: {'开启' if self.is_debug_enabled() else '关闭'}")
         print(f"   默认输出格式: {self.get('output.default_format')}")
+        print(
+            f"   LLM配置: {'已配置' if self.is_llm_configured() else '未配置'}"
+        )
+        if self.is_llm_configured():
+            llm_config = self.get_llm_config()
+            print(f"   LLM模型: {llm_config['model']}")
+            print(f"   API端点: {llm_config['base_url']}")
 
 
 class CLIError(Exception):
@@ -315,3 +367,43 @@ def get_user_agent() -> str:
 def is_debug() -> bool:
     """检查是否启用调试模式"""
     return cli_config.is_debug_enabled()
+
+
+def get_llm_api_key() -> str:
+    """获取LLM API密钥"""
+    return cli_config.get("llm.api_key")
+
+
+def get_llm_base_url() -> str:
+    """获取LLM API基础URL"""
+    return cli_config.get("llm.base_url")
+
+
+def get_llm_model() -> str:
+    """获取LLM模型名称"""
+    return cli_config.get("llm.model")
+
+
+def is_llm_configured() -> bool:
+    """检查LLM是否已配置"""
+    return cli_config.is_llm_configured()
+
+
+def get_llm_timeout() -> int:
+    """获取LLM超时时间"""
+    return cli_config.get("llm.timeout")
+
+
+def get_llm_max_retries() -> int:
+    """获取LLM最大重试次数"""
+    return cli_config.get("llm.max_retries")
+
+
+def get_llm_temperature() -> float:
+    """获取LLM温度参数"""
+    return cli_config.get("llm.temperature")
+
+
+def get_llm_max_tokens() -> int:
+    """获取LLM最大token数"""
+    return cli_config.get("llm.max_tokens")

@@ -11,7 +11,8 @@ import sys
 # 添加项目根目录到路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from llm_dynamic.analyzer import DynamicLLMAnalyzer
+import cli_config
+from llm_dynamic.analyzer_api import DynamicLLMAnalyzerAPI
 from llm_dynamic.database import get_all_products, get_products_by_keyword
 
 
@@ -20,12 +21,21 @@ async def main():
     if len(sys.argv) < 2:
         print("🤖 LLM动态商品分析工具")
         print("\n使用方法：")
-        print("  python llm_cli.py '你的分析需求' [关键词] [--model 模型名]")
-        print("\n示例：")
+        print("  python llm_cli.py '你的分析需求' [关键词] [选项]")
+        print("\n基本选项：")
+        print("  --model 模型名       指定模型（默认：gpt-3.5-turbo）")
+        print("  --keyword 关键词     搜索关键词")
+        print("  --limit 数量         分析商品数量（默认：10）")
+        print("  --interactive, -i    交互模式")
+        print("\n使用示例：")
         print("  python llm_cli.py '找出性价比最高的iPhone'")
-        print("  python llm_cli.py '分析这些商品的共同特点' iPhone")
-        print("  python llm_cli.py '给购买建议' MacBook --model qwen2.5:7b")
+        print("  python llm_cli.py '分析这些商品' iPhone --model gpt-4")
+        print("  python llm_cli.py '给购买建议' --keyword MacBook")
         print("  python llm_cli.py '按价格排序' --keyword iPhone --limit 15")
+        print("\n配置检查：")
+        print("  python check_llm_env.py")
+        print("\n配置指南：")
+        print("  docs/API_SETUP_GUIDE.md")
         return
 
     # 解析命令行参数
@@ -57,12 +67,37 @@ async def main():
         print(f"🔍 关键词：{keyword}")
     if model:
         print(f"🤖 使用模型：{model}")
+    else:
+        print(f"🤖 默认模型：{cli_config.get_llm_model()}")
+
     print(f"📊 分析数量：{limit}")
     print("=" * 50)
 
     try:
+        # 验证API密钥
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("❌ OpenAI API 密钥未配置")
+            print("\n💡 配置方法：")
+            print("1. 复制环境配置：cp env.example .env")
+            print("2. 编辑 .env 文件，设置 OPENAI_API_KEY")
+            print("3. 详细指南：docs/API_SETUP_GUIDE.md")
+            return
+
         # 初始化分析器
-        analyzer = DynamicLLMAnalyzer(model=model)
+        analyzer = DynamicLLMAnalyzerAPI(model=model)
+        print("🔗 正在验证API连接...")
+
+        # 测试连接
+        connection_test = await analyzer.test_connection()
+        if connection_test["status"] == "error":
+            print(f"❌ API连接失败：{connection_test['message']}")
+            print("\n💡 建议解决方案：")
+            for suggestion in connection_test.get("suggestions", []):
+                print(f"  • {suggestion}")
+            return
+        else:
+            print(f"✅ API连接成功：{connection_test['message']}")
 
         # 获取商品数据
         if keyword:
@@ -86,12 +121,26 @@ async def main():
         print(result)
 
     except Exception as e:
-        print(f"❌ 分析失败：{str(e)}")
+        error_msg = str(e)
+        print(f"❌ 分析失败：{error_msg}")
         print("\n💡 可能的解决方案：")
-        print("1. 确保Ollama服务已启动：ollama serve")
-        print("2. 检查模型是否已安装：ollama list")
-        print("3. 安装默认模型：ollama pull llama3.2")
+
+        if "api_key" in error_msg.lower():
+            print("1. 检查 OPENAI_API_KEY 是否正确配置")
+            print("2. 验证API密钥格式（以sk-开头）")
+        elif "rate_limit" in error_msg.lower():
+            print("1. API请求频率超限，请稍后重试")
+            print("2. 考虑升级API计划")
+        elif "model" in error_msg.lower():
+            print("1. 检查模型名称是否正确")
+            print("2. 验证账户是否有模型访问权限")
+        else:
+            print("1. 检查网络连接")
+            print("2. 验证API服务状态")
+            print("3. 查看详细配置指南：docs/API_SETUP_GUIDE.md")
+
         print("4. 检查数据库文件是否存在")
+        print("5. 运行环境检查：python check_llm_env.py")
 
 
 async def interactive_mode():
@@ -100,7 +149,30 @@ async def interactive_mode():
     print("输入 'quit' 或 'exit' 退出")
     print("=" * 50)
 
-    analyzer = DynamicLLMAnalyzer()
+    try:
+        # 验证API密钥
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("❌ OpenAI API 密钥未配置，请先配置后再使用交互模式")
+            print("\n💡 配置方法：")
+            print("1. 复制环境配置：cp env.example .env")
+            print("2. 编辑 .env 文件，设置 OPENAI_API_KEY")
+            print("3. 详细指南：docs/API_SETUP_GUIDE.md")
+            return
+
+        analyzer = DynamicLLMAnalyzerAPI()
+
+        # 测试连接
+        print("🔗 正在验证API连接...")
+        connection_test = await analyzer.test_connection()
+        if connection_test["status"] == "error":
+            print(f"❌ API连接失败：{connection_test['message']}")
+            return
+        else:
+            print(f"✅ {connection_test['message']}")
+    except Exception as e:
+        print(f"❌ 初始化分析器失败：{str(e)}")
+        return
 
     while True:
         try:
@@ -143,12 +215,18 @@ async def interactive_mode():
             print("\n👋 再见！")
             break
         except Exception as e:
-            print(f"❌ 错误：{str(e)}")
+            error_msg = str(e)
+            print(f"❌ 错误：{error_msg}")
+
+            if "rate_limit" in error_msg.lower():
+                print("💡 API请求频率超限，请稍等片刻再试")
+            elif "api_key" in error_msg.lower():
+                print("💡 API密钥问题，请检查配置")
 
 
 if __name__ == "__main__":
     # 检查是否是交互模式
-    if len(sys.argv) == 2 and sys.argv[1] in ["--interactive", "-i"]:
+    if len(sys.argv) >= 2 and sys.argv[-1] in ["--interactive", "-i"]:
         asyncio.run(interactive_mode())
     else:
         asyncio.run(main())

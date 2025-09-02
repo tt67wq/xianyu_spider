@@ -14,7 +14,7 @@ class DynamicLLMAnalyzer:
 
     def __init__(self, model: Optional[str] = None):
         """初始化分析器，支持模型配置"""
-        self.model = model or os.getenv("LLM_MODEL", "qwen3:0.6b")
+        self.model = model or os.getenv("OPENAI_MODEL", "qwen3:0.6b")
         self.client = ollama.Client()
 
     async def analyze_with_prompt(

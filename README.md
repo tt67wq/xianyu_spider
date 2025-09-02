@@ -23,6 +23,8 @@
 | SQLite         | 轻量级数据库存储         |
 | aiosqlite      | 异步SQLite驱动           |
 | Uvicorn        | ASGI服务器               |
+| LangChain      | LLM应用开发框架          |
+| OpenAI API     | 大语言模型服务           |
 
 ## 快速开始
 
@@ -53,7 +55,20 @@ SERVER_PORT=8000
 REQUEST_DELAY=1
 BROWSER_HEADLESS=true
 DEBUG=false
+
+# LLM配置
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-3.5-turbo
+# OPENAI_BASE_URL=https://api.openai.com/v1  # 可选，默认使用官方API
 ```
+
+**LLM配置说明**：
+- ✅ 支持 OpenAI API（GPT-3.5/GPT-4）
+- ✅ 可配置自定义 API 端点
+- ✅ 支持多种模型切换
+- ✅ 基于 LangChain 框架集成
+
+📋 **详细配置指南**：请参考 [API配置指南](docs/API_SETUP_GUIDE.md) 获取完整的设置说明
 
 **SQLite数据库优势**：
 - ✅ 无需额外安装数据库服务
@@ -142,18 +157,18 @@ sqlite3 data/xianyu_spider.db "SELECT COUNT(*) FROM xianyu_products;"
 
 ## 注意事项
 
-1. **法律合规**  
+1. **法律合规**
 使用前请确保遵守《网络安全法》和闲鱼平台 Robots 协议，本代码仅用于学习研究
 
-2. **反爬机制**  
+2. **反爬机制**
 建议配置代理 IP 池和随机请求间隔，默认配置可能触发反爬限制
 
-3. **性能调优**  
+3. **性能调优**
 - SQLite单进程写入，适合中小规模数据
 - 大量并发写入建议考虑PostgreSQL或MySQL
 - 定期清理历史数据避免文件过大
 
-4. **数据安全**  
+4. **数据安全**
 - 定期备份 `data` 目录
 - `.env` 文件已加入 `.gitignore`，避免提交敏感配置
 - 生产环境建议设置文件权限限制
