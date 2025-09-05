@@ -558,7 +558,7 @@ def create_parser():
     )
 
     # 信息命令
-    info_parser = subparsers.add_parser("info", help="显示数据库信息")
+    subparsers.add_parser("info", help="显示数据库信息")
 
     return parser
 
